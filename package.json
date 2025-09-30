@@ -1,0 +1,21 @@
+{
+  "name": "gepelink-api-schoolslist-final",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "repository": "https://github.com/ivanydev/gepelink-api-schoolslist-final.git",
+  "author": "Ivany <ivanysebastiao1@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
