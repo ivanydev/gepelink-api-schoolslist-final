@@ -24,8 +24,11 @@ async function fetchFormData(formUid) {
     const res = await fetch(url, {
       headers: { Authorization: `Token ${KOBO_TOKEN}` },
     });
-    if (!res.ok) throw new Error(`Erro ao buscar ${formUid}: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      throw new Error(`Erro ao buscar ${formUid}: ${res.status} ${res.statusText}`);
+    }
     const data = await res.json();
+    //console.log(`Dados recebidos para ${formUid}:`, JSON.stringify(data.results, null, 2));
     return data.results || [];
   } catch (error) {
     console.error(`Falha ao buscar dados para UID ${formUid}:`, error.message);
@@ -33,7 +36,7 @@ async function fetchFormData(formUid) {
   }
 }
 
-// Função para consolidar escolas e salvar CSV
+// Função para consolidar escolas
 async function generateCSV() {
   let escolasMap = new Map();
 
@@ -42,6 +45,8 @@ async function generateCSV() {
     const submissions = await fetchFormData(uid);
 
     submissions.forEach((row, index) => {
+      //console.log(`Submissão ${index + 1} para ${table}:`, JSON.stringify(row, null, 2));
+      // Ajustar nomes de campos conforme o JSON retornado
       const codigo = row["identificacao_da_escola/DGE_SQE_B0_P1_codigo_escola"];
       const nome = row["identificacao_da_escola/DGE_SQE_B1_P1_nome_escola"] || "Sem nome";
       const provincia = row["identificacao_da_escola/DGE_SQE_B1_P4_provincia"] || "";
@@ -57,53 +62,23 @@ async function generateCSV() {
   }
 
   // Gerar CSV final
-  const linhas = [
-    "DGE_SQE_B0_P1_codigo_escola,DGE_SQE_B1_P1_nome_escola,DGE_SQE_B1_P4_provincia,DGE_SQE_B1_P5_municipio,DGE_SQE_B1_P7_localidade"
-  ];
+  const linhas = ["DGE_SQE_B0_P1_codigo_escola,DGE_SQE_B1_P1_nome_escola,DGE_SQE_B1_P4_provincia,DGE_SQE_B1_P5_municipio,DGE_SQE_B1_P7_localidade"];
   escolasMap.forEach((e) => {
-    linhas.push(`${e.codigo},${e.nome},${e.provincia},${e.municipio},${e.comuna}`);
+    linhas.push(
+      `${e.codigo},${e.nome},${e.provincia},${e.municipio},${e.comuna}`
+    );
   });
 
+  // Garantir que a pasta 'public' existe
   const publicDir = path.join(process.cwd(), "public");
-  if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir);
+  }
 
-  const csvPath = path.join(publicDir, "escolas.csv");
+  // Salvar CSV
+  const csvPath = path.join(process.cwd(), "public", "escolas.csv");
   fs.writeFileSync(csvPath, linhas.join("\n"), "utf8");
   console.log(`✅ CSV atualizado: ${csvPath}, ${escolasMap.size} escolas incluídas`);
-
-  // Depois de gerar, sobe para o Kobo
-  await uploadCSVToAllForms(csvPath);
-}
-
-// Função para upload de CSV para 1 formulário
-async function uploadCSVToForm(formUid,filePath) {
-  const url = `https://kf.kobotoolbox.org/api/v2/assets/${formUid}/files/`;
-
-  const formData = new FormData();
-  formData.append("file", fs.createReadStream(filePath));
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Token ${KOBO_TOKEN}` },
-      body: formData ,
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Erro upload ${formUid}: ${res.status} ${res.statusText} - ${text}`);
-    }
-    console.log(`📤 CSV enviado com sucesso para formulário ${formUid}`);
-  } catch (err) {
-    console.error(`❌ Falha no upload do CSV para ${formUid}:`, err.message);
-  }
-}
-
-// Upload para todos os formulários
-async function uploadCSVToAllForms(filePath) {
-  for (const [name, uid] of Object.entries(FORMS)) {
-    console.log(`➡️ Subindo CSV para ${name} (${uid})...`);
-    await uploadCSVToForm(uid, filePath);
-  }
 }
 
 // Rota para servir o CSV
@@ -116,13 +91,13 @@ app.get("/csv/escolas.csv", (req, res) => {
   }
 });
 
-// Atualização automática a cada 30 segundos
+// Rodar atualização automática a cada 10 segundos (para testes)
 cron.schedule("*/30 * * * * *", () => {
-  console.log("⏳ Atualizando CSV e reenviando para Kobo...");
+  console.log("⏳ Atualizando CSV...");
   generateCSV().catch(console.error);
 });
 
-// Primeira execução ao iniciar servidor
+// Primeira geração ao iniciar servidor
 generateCSV().catch(console.error);
 
 app.listen(PORT, () => {
