@@ -121,7 +121,7 @@ async function uploadCSVToAllForms(filePath) {
 // Função para consolidar escolas e salvar CSV
 
 async function generateCSV() {
-  let escolasMap = new Map();
+  let escolas = [];
 
   for (const [table, uid] of Object.entries(FORMS)) {
     console.log(`Buscando dados para ${table} (${uid})...`);
@@ -130,54 +130,35 @@ async function generateCSV() {
     submissions.forEach((row) => {
       const codigo = row["identificacao_da_escola/DGE_SQE_B0_P1_codigo_escola"];
       const nome = row["identificacao_da_escola/DGE_SQE_B1_P1_nome_escola"] || "Sem nome";
-      const provincia = row["identificacao_da_escola/DGE_SQE_B1_P4_provincia"] || "";
-      const municipio = row["identificacao_da_escola/DGE_SQE_B1_P5_municipio"] || "";
-      const comuna = row["identificacao_da_escola/DGE_SQE_B1_P7_localidade"] || "";
+      if (!codigo || nome === "Sem nome") return;
 
-      // --- Campos adicionais ---
-      const inicioAno = row["identificacao_da_escola/DGE_SQE_B0_P2_inicio_ano_lectivo"] || "";
-      const fimAno = row["identificacao_da_escola/DGE_SQE_B0_P3_fim_ano_lectivo"] || "";
-      const situacaoFunc = row["identificacao_da_escola/DGE_SQE_B1_P0_situacao_funcionamento"] || "";
-      const endereco = row["identificacao_da_escola/DGE_SQE_B1_P2_endereco_escola"] || "";
-      const referencia = row["identificacao_da_escola/DGE_SQE_B1_P3_ponto_referencia"] || "";
-      const comunaDistrito = row["identificacao_da_escola/DGE_SQE_B1_P6_comuna_distrito"] || "";
-      const natureza = row["identificacao_da_escola/DGE_SQE_B1_P8_natureza_da_escola"] || "";
-      const zonaGeografica = row["identificacao_da_escola/DGE_SQE_B1_P9_area_residencia_zona_geografica"] || "";
-      const temDecreto = row["identificacao_da_escola/DGE_SQE_B1_P9_escola_tem_decreto"] || "";
-      const temLicenca = row["identificacao_da_escola/DGE_SQE_B1_P9_escola_tem_licenca"] || "";
-      const decreto = row["identificacao_da_escola/DGE_SQE_B1_P10_decreto_criacao"] || "";
-      const licenca = row["identificacao_da_escola/DGE_SQE_B1_P11_licenca"] || "";
-
-      if (codigo && nome !== "Sem nome") {
-        escolasMap.set(codigo, {
-          codigo: codigo.toString().trim(),
-          nome: nome.toString().trim(),
-          provincia: provincia.toString().trim(),
-          municipio: municipio.toString().trim(),
-          comuna: comuna.toString().trim(),
-          inicioAno: inicioAno.trim(),
-          fimAno: fimAno.trim(),
-          situacaoFunc: situacaoFunc.trim(),
-          endereco: endereco.trim(),
-          referencia: referencia.trim(),
-          comunaDistrito: comunaDistrito.trim(),
-          natureza: natureza.trim(),
-          zonaGeografica: zonaGeografica.trim(),
-          temDecreto: temDecreto.trim(),
-          temLicenca: temLicenca.trim(),
-          decreto: decreto.trim(),
-          licenca: licenca.trim(),
-        });
-      } else {
-        console.warn(`Submissão ignorada em ${table}: código=${codigo}, nome=${nome}`);
-      }
+      escolas.push({
+        list_name: "escolas",
+        name: codigo.toString().trim(),
+        label: nome.toString().trim(),
+        provincia: row["identificacao_da_escola/DGE_SQE_B1_P4_provincia"] || "",
+        municipio: row["identificacao_da_escola/DGE_SQE_B1_P5_municipio"] || "",
+        comuna: row["identificacao_da_escola/DGE_SQE_B1_P7_localidade"] || "",
+        inicioAno: row["identificacao_da_escola/DGE_SQE_B0_P2_inicio_ano_lectivo"] || "",
+        fimAno: row["identificacao_da_escola/DGE_SQE_B0_P3_fim_ano_lectivo"] || "",
+        situacaoFunc: row["identificacao_da_escola/DGE_SQE_B1_P0_situacao_funcionamento"] || "",
+        endereco: row["identificacao_da_escola/DGE_SQE_B1_P2_endereco_escola"] || "",
+        referencia: row["identificacao_da_escola/DGE_SQE_B1_P3_ponto_referencia"] || "",
+        comunaDistrito: row["identificacao_da_escola/DGE_SQE_B1_P6_comuna_distrito"] || "",
+        natureza: row["identificacao_da_escola/DGE_SQE_B1_P8_natureza_da_escola"] || "",
+        zonaGeografica: row["identificacao_da_escola/DGE_SQE_B1_P9_area_residencia_zona_geografica"] || "",
+        temDecreto: row["identificacao_da_escola/DGE_SQE_B1_P9_escola_tem_decreto"] || "",
+        temLicenca: row["identificacao_da_escola/DGE_SQE_B1_P9_escola_tem_licenca"] || "",
+        decreto: row["identificacao_da_escola/DGE_SQE_B1_P10_decreto_criacao"] || "",
+        licenca: row["identificacao_da_escola/DGE_SQE_B1_P11_licenca"] || "",
+      });
     });
   }
 
-  // --- Geração de CSV completo ---
   const headers = [
-    "codigo",
-    "nome",
+    "list_name",
+    "name",
+    "label",
     "provincia",
     "municipio",
     "comuna",
@@ -196,10 +177,9 @@ async function generateCSV() {
   ];
 
   const escapeCSV = (str) => `"${(str || "").replace(/"/g, '""')}"`;
-
   const linhas = [headers.join(",")];
 
-  escolasMap.forEach((e) => {
+  escolas.forEach((e) => {
     const linha = headers.map((h) => escapeCSV(e[h] || ""));
     linhas.push(linha.join(","));
   });
@@ -210,8 +190,8 @@ async function generateCSV() {
   const csvPath = path.join(publicDir, "escolas.csv");
   fs.writeFileSync(csvPath, linhas.join("\n"), "utf8");
 
-  console.log(`✅ CSV completo salvo: ${csvPath}`);
-  console.log(`📊 Total de escolas incluídas: ${escolasMap.size}`);
+  console.log(`✅ CSV salvo para Kobo: ${csvPath}`);
+  console.log(`📊 Total: ${escolas.length} escolas`);
 }
 
 
