@@ -119,6 +119,7 @@ async function uploadCSVToAllForms(filePath) {
 }
 
 // Função para consolidar escolas e salvar CSV
+
 async function generateCSV() {
   let escolasMap = new Map();
 
@@ -133,7 +134,7 @@ async function generateCSV() {
       const municipio = row["identificacao_da_escola/DGE_SQE_B1_P5_municipio"] || "";
       const comuna = row["identificacao_da_escola/DGE_SQE_B1_P7_localidade"] || "";
 
-      // Novos campos adicionados
+      // --- Campos adicionais ---
       const inicioAno = row["identificacao_da_escola/DGE_SQE_B0_P2_inicio_ano_lectivo"] || "";
       const fimAno = row["identificacao_da_escola/DGE_SQE_B0_P3_fim_ano_lectivo"] || "";
       const situacaoFunc = row["identificacao_da_escola/DGE_SQE_B1_P0_situacao_funcionamento"] || "";
@@ -175,24 +176,47 @@ async function generateCSV() {
     });
   }
 
-  // Gerar CSV no formato Kobo (list_name,name,label)
-  const linhas = ["list_name,name,label"];
+  // --- Geração de CSV completo ---
+  const headers = [
+    "codigo",
+    "nome",
+    "provincia",
+    "municipio",
+    "comuna",
+    "inicioAno",
+    "fimAno",
+    "situacaoFunc",
+    "endereco",
+    "referencia",
+    "comunaDistrito",
+    "semComunaDistrito",
+    "natureza",
+    "zonaGeografica",
+    "temDecreto",
+    "temLicenca",
+    "decreto",
+    "licenca",
+  ];
+
+  const escapeCSV = (str) => `"${(str || "").replace(/"/g, '""')}"`;
+
+  const linhas = [headers.join(",")];
+
   escolasMap.forEach((e) => {
-    const escapeCSV = (str) => `"${str.replace(/"/g, '""')}"`;
-
-    // Label mais rico (podes ajustar conforme necessidade)
-    const label = `${e.nome} (${e.comuna || "?"} - ${e.municipio || "?"} - Prov. ${e.provincia || "?"})`;
-
-    linhas.push(["escolas", escapeCSV(e.codigo), escapeCSV(label)].join(","));
+    const linha = headers.map((h) => escapeCSV(e[h] || ""));
+    linhas.push(linha.join(","));
   });
 
   const publicDir = path.join(process.cwd(), "public");
   if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-  const csvPath = path.join(publicDir, "escolas.csv");
 
+  const csvPath = path.join(publicDir, "escolas.csv");
   fs.writeFileSync(csvPath, linhas.join("\n"), "utf8");
-  console.log(`✅ CSV compatível com Kobo salvo: ${csvPath}, ${escolasMap.size} escolas incluídas`);
+
+  console.log(`✅ CSV completo salvo: ${csvPath}`);
+  console.log(`📊 Total de escolas incluídas: ${escolasMap.size}`);
 }
+
 
 
 async function generateCSVXXX() {
