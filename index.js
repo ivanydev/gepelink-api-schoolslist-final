@@ -141,7 +141,6 @@ async function generateCSV() {
       const endereco = row["identificacao_da_escola/DGE_SQE_B1_P2_endereco_escola"] || "";
       const referencia = row["identificacao_da_escola/DGE_SQE_B1_P3_ponto_referencia"] || "";
       const comunaDistrito = row["identificacao_da_escola/DGE_SQE_B1_P6_comuna_distrito"] || "";
-      const semComunaDistrito = row["identificacao_da_escola/DGE_SQE_B1_P6_sem_comuna_distrito"] || "";
       const natureza = row["identificacao_da_escola/DGE_SQE_B1_P8_natureza_da_escola"] || "";
       const zonaGeografica = row["identificacao_da_escola/DGE_SQE_B1_P9_area_residencia_zona_geografica"] || "";
       const temDecreto = row["identificacao_da_escola/DGE_SQE_B1_P9_escola_tem_decreto"] || "";
@@ -162,7 +161,6 @@ async function generateCSV() {
           endereco: endereco.trim(),
           referencia: referencia.trim(),
           comunaDistrito: comunaDistrito.trim(),
-          semComunaDistrito: semComunaDistrito.trim(),
           natureza: natureza.trim(),
           zonaGeografica: zonaGeografica.trim(),
           temDecreto: temDecreto.trim(),
@@ -189,7 +187,6 @@ async function generateCSV() {
     "endereco",
     "referencia",
     "comunaDistrito",
-    "semComunaDistrito",
     "natureza",
     "zonaGeografica",
     "temDecreto",
